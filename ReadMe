@@ -1,0 +1,26 @@
+### Compile and Run
+
+* Build
+`cmake -S . -B build`
+`cmake --build build`
+
+* Run
+
+`cmake --build build --target get_stats`
+
+
+### Example Player Score Vector:
+
+|Name   |`'web_name'`   |`Evanilson`|
+|-------|:-------------:|----------:|
+|Goals      |`'goals_scored'`   | 4     |
+|xG         |`'expected_goals'` | 5.87  |
+|Assists    |`'assists'`        | 4     |
+|xA         |`'expected_assists'`| 1.01 |
+|
+
+* Add to settings.json (vsc):
+`"cmake.configureArgs": [
+            "-DURL=https://fantasy.premierleague.com/api/"
+    ],
+        `

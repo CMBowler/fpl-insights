@@ -1,0 +1,8 @@
+buildType:
+  default: debug
+  description: Choose the build type
+  debug: 
+    short: Debug
+    buildType: Debug
+    settings:
+      URL: "https://fantasy.premierleague.com/api/"
