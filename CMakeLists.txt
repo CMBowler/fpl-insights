@@ -9,23 +9,8 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Source files in src directory
-set(SOURCES
-    main.cpp
-    fetch.cpp
-    form.cpp
-    score.cpp
-)
+# Include directories for headers
+include_directories(${CMAKE_SOURCE_DIR}/inc)
 
-add_definitions(-DURL="${URL}")
-
-# Add source file
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-# Link required libraries (e.g., curl)
-find_package(CURL REQUIRED)
-target_link_libraries(${PROJECT_NAME} CURL::libcurl)
-
-# Include directories for external libraries (JSON for Modern C++)
-#include_directories(${CMAKE_SOURCE_DIR}/include)
-
+# Add subdirectory for source files
+add_subdirectory(src)

@@ -1,0 +1,7 @@
+build/*
+
+notes.*
+
+.vscode/*
+
+data/*

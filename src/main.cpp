@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 
         // if a player has played a total of less
         // than 90 mins, exclude them from the dataset
-        if (player.mins < 90) {
+        if (player.mins < 180) {
             continue;
         }
 
@@ -58,7 +58,6 @@ int main(int argc, char* argv[]) {
 
         //cout    << "Requesting match history for player " << player.pid 
         //        << " from URL: " << playerURL << endl;
-
 
         string playerHist = fetchJSONFromURL(playerURL);
         vector<float> form = CalculateForm(playerHist, player.role);
