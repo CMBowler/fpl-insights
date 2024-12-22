@@ -17,7 +17,7 @@ int exportFormToCSV(const string& filename, const vector<float>& data) {
 
     outFile.close();
 
-    cout << "Form data successfully exported to " << filename << endl;
+    //cout << "Form data successfully exported to " << filename << endl;
 
     return EXIT_SUCCESS;
 }
@@ -38,20 +38,26 @@ int main(int argc, char* argv[]) {
 
     string playerList = fetchJSONFromURL(url);
 
-    startCSV();
+    //startCSV();
 
     vector<player> playerInfo = fetchPlayers(playerList);
 
     for (auto player : playerInfo) {
         // Build history vector for each player
 
+        // if a player has played a total of less
+        // than 90 mins, exclude them from the dataset
+        if (player.mins < 90) {
+            continue;
+        }
+
         // Build URL for player history
         string playerURL = URL;
         playerURL.append(MATCH_HISTORY);
         playerURL.append(to_string(player.pid));
 
-        cout    << "Requesting match history for player " << player.pid 
-                << " from URL: " << playerURL << endl;
+        //cout    << "Requesting match history for player " << player.pid 
+        //        << " from URL: " << playerURL << endl;
 
 
         string playerHist = fetchJSONFromURL(playerURL);

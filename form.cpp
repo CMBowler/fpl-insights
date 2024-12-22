@@ -33,6 +33,11 @@ std::vector<float> CalculateForm(const std::string& jsonContent, ROLE role) {
     // Loop through each array in "history"
     for (const auto& match : recentMatches) {
 
+        if(match["minutes"] == 0) {
+            all_scores.push_back(0.0);
+            continue;
+        }
+
         float goals = match["goals_scored"];
         float assists = match["assists"];
         float xG = stringToFloat(match["expected_goals"]);
