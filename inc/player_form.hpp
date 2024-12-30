@@ -1,5 +1,5 @@
-#ifndef _FORM_HPP_
-#define _FORM_HPP_
+#ifndef _PLAYER_FORM_HPP_
+#define _PLAYER_FORM_HPP_
 
 #include "score.hpp"
 #include "json.hpp"
@@ -9,4 +9,4 @@ using json = nlohmann::json;
 
 vector<float> CalculateForm(const string& jsonContent, ROLE role);
 
-#endif
+#endif // _PLAYER_FORM_HPP_

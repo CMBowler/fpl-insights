@@ -8,8 +8,7 @@
 
 #define BOOTSTRAP "bootstrap-static/"
 #define MATCH_HISTORY "element-summary/"
-
-#define CSV_OUT "player_data.csv"
+#define MATCHWEEK_HISTORY "fixtures/"
 
 enum TEAMS {
     ARS = 1,
@@ -32,6 +31,7 @@ enum TEAMS {
     TOT,
     WHU,
     WOL
+    MAX_TEAMS
 };
 
 using namespace std;
