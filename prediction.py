@@ -1,92 +1,22 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
-# Load and preprocess the data
-def load_data(file_path):
-    print("Loading data from CSV...")
-    data = pd.read_csv(file_path)
-    print(f"Data loaded successfully. Number of records: {len(data)}")
+class HybridRNN(nn.Module):
+    def __init__(self, sequence_input_size, hidden_size, num_layers, metadata_size, output_size=1):
+        super(HybridRNN, self).__init__()
 
-    # Extract metadata and features
-    print("Separating metadata and features...")
-    metadata = data.iloc[:, :3].values  # First 3 columns: id, cost, team
-    features = data.iloc[:, 3:-1].values  # Triplet data (all but the last column)
-    targets = data.iloc[:, -1].values    # Final column: target score
-    print("Metadata and features separated.")
+        # RNN (LSTM in this case) for sequential data
+        self.rnn = nn.LSTM(sequence_input_size, hidden_size, num_layers, batch_first=True)
 
-    # Extract and append opponent and home/away values from the last triplet
-    print("Appending opponent and home/away values to metadata...")
-    num_samples = len(data)
-    sequence_length = 5
-    input_size = 3
-
-    # Calculate the indices of the last triplet's opponent and home/away columns
-    opponent_index = sequence_length * input_size - 2
-    home_away_index = sequence_length * input_size - 1
-
-    # Extract the last tuple's opponent and home/away values
-    last_opponent = features[:, opponent_index]
-    last_home_away = features[:, home_away_index]
-
-    # Append to metadata
-    metadata = np.hstack((metadata, last_opponent.reshape(-1, 1), last_home_away.reshape(-1, 1)))
-    print(f"Updated metadata shape: {metadata.shape}")
-
-    # Remove the last tuple's opponent and home/away from features
-    print("Removing last opponent and home/away values from features...")
-    features = np.delete(features, [opponent_index, home_away_index], axis=1)
-
-    # Normalize features (triplet data only)
-    print("Normalizing triplet features...")
-    scaler = StandardScaler()
-    features = scaler.fit_transform(features)
-    print("Normalization complete.")
-
-    # Reshape triplet features for RNN
-    print("Reshaping features for RNN...")
-    if features.shape[1] % (sequence_length * input_size - 2) != 0:
-        print("Error: The number of triplet values is not divisible by the adjusted sequence length.")
-        return None
-
-    reshaped_features = features.reshape(-1, sequence_length, input_size - 2)
-    reshaped_targets = targets[sequence_length - 1::sequence_length]  # Use valid y values
-    print(f"Features reshaped to {reshaped_features.shape}. Targets reshaped to {len(reshaped_targets)}.")
-
-    # Convert to tensors
-    print("Converting to tensors...")
-    X_train, X_test, y_train, y_test, M_train, M_test = train_test_split(
-        reshaped_features, reshaped_targets, metadata, test_size=0.2, random_state=42
-    )
-
-    return (
-        torch.tensor(X_train, dtype=torch.float32),
-        torch.tensor(X_test, dtype=torch.float32),
-        torch.tensor(y_train, dtype=torch.float32),
-        torch.tensor(y_test, dtype=torch.float32),
-        torch.tensor(M_train, dtype=torch.float32),
-        torch.tensor(M_test, dtype=torch.float32)
-    )
-
-# Define the RNN Model
-class PlayerPerformancePredictor(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, metadata_size, output_size=1):
-        super(PlayerPerformancePredictor, self).__init__()
-        # RNN for sequential data
-        self.rnn = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        
-        # Dense network for metadata
+        # Fully connected layers for constant metadata (id, cost, team)
         self.metadata_fc = nn.Sequential(
             nn.Linear(metadata_size, 32),
             nn.ReLU(),
             nn.Linear(32, 16),
             nn.ReLU()
         )
-        
-        # Final fully connected layer
+
+        # Final fully connected layer for prediction
         self.fc = nn.Sequential(
             nn.Linear(hidden_size + 16, 32),
             nn.ReLU(),
@@ -96,24 +26,92 @@ class PlayerPerformancePredictor(nn.Module):
     def forward(self, sequence_data, metadata):
         # Process sequence data through RNN
         rnn_out, _ = self.rnn(sequence_data)
-        rnn_out = rnn_out[:, -1, :]  # Take the last hidden state
+        rnn_out = rnn_out[:, -1, :]  # Take the last hidden state for sequence data
         
-        # Process metadata through dense network
+        # Process metadata through fully connected layers
         metadata_out = self.metadata_fc(metadata)
         
-        # Concatenate RNN and metadata outputs
+        # Combine RNN output and metadata output
         combined = torch.cat((rnn_out, metadata_out), dim=1)
         
         # Final prediction
         output = self.fc(combined)
         return output
 
-# Training function
-def train_model(model, train_loader, optimizer, criterion, num_epochs):
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader, TensorDataset
+
+# Function to load and preprocess the dataset
+def load_data(file_path):
+    # Load data from CSV
+    data = pd.read_csv(file_path)
+    print(f"Raw data shape: {data.shape}")  # Check the number of rows and columns
+    
+    # Extract constant metadata fields (id, cost, team) and opponent, home/away
+    metadata = data.iloc[:, [0, 1, 2, 15, 16]].values  # Columns 0-2 (id, cost, team) and 16-17 (opponent, home/away)
+    
+    # Extract features: Columns 3-15 (12 features per player)
+    features = data.iloc[:, 3:15].values  # Columns 3-15 are the feature columns
+    
+    # Extract target: Column 18 (final score)
+    targets = data.iloc[:, -1].values    # Column 18 is the final score
+    
+    print(f"Features shape: {features.shape}")
+    print(f"Metadata shape: {metadata.shape}")
+    print(f"Targets shape: {targets.shape}")
+    
+    # Normalize the features and metadata
+    scaler = StandardScaler()
+    features = scaler.fit_transform(features)
+    
+    metadata_scaler = StandardScaler()
+    metadata = metadata_scaler.fit_transform(metadata)
+    
+    # Reshape the features into a format suitable for RNN: (batch_size, sequence_length, input_size)
+    sequence_length = 4  # Number of tuples (5 tuples per player)
+    input_size = 3  # Number of features per tuple (e.g., match rating, opponent, home/away)
+    
+    # Reshape features into (batch_size, sequence_length, input_size)
+    reshaped_features = features.reshape(-1, sequence_length, input_size)
+    
+    print(f"Reshaped features shape: {reshaped_features.shape}")
+    
+    # Check consistency: ensure the number of samples is the same across all arrays
+    assert reshaped_features.shape[0] == metadata.shape[0] == len(targets), "Shape mismatch"
+    
+    # Convert data to tensors
+    X_features = torch.tensor(reshaped_features, dtype=torch.float32)
+    X_metadata = torch.tensor(metadata, dtype=torch.float32)
+    y = torch.tensor(targets, dtype=torch.float32)
+
+    return X_features, X_metadata, y
+
+# Function to create DataLoader
+def create_dataloader(X_features, X_metadata, y, batch_size=32):
+
+    print(f"X_features shape: {X_features.shape}")
+    print(f"X_metadata shape: {X_metadata.shape}")
+    print(f"y shape: {y.shape}")
+
+    dataset = TensorDataset(X_features, X_metadata, y)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return dataloader
+
+
+import torch.optim as optim
+
+# Training the model
+def train_model(model, train_loader, optimizer, criterion, num_epochs=10):
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
         for sequence_data, metadata, targets in train_loader:
+            sequence_data = sequence_data.to(device)
+            metadata = metadata.to(device)
+            targets = targets.to(device)
 
             optimizer.zero_grad()
             outputs = model(sequence_data, metadata)
@@ -125,64 +123,31 @@ def train_model(model, train_loader, optimizer, criterion, num_epochs):
         
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}")
 
-# Evaluation function
-def evaluate_model(model, criterion, test_loader):
-    print("Evaluating model on test data...")
-    model.eval()
-    total_loss = 0
-    with torch.no_grad():
-        for inputs, targets in test_loader:
-            outputs = model(inputs)
-            loss = criterion(outputs.squeeze(), targets)
-            total_loss += loss.item()
-    print(f"Test Loss: {total_loss / len(test_loader):.4f}")
 
-# Main script
-if __name__ == "__main__":
-    print("Starting script...")
-    # Load the data
-    file_path = "player_data.csv"
-    X_train, X_test, y_train, y_test, M_train, M_test = load_data(file_path)
-    
-    # Reshape data for RNN (batch_size, sequence_length, input_size)
-    print("Reshaping data for RNN...")
-    sequence_length = 5
-    input_size = 3  # Match rating, opponent team, home/away
-    X_train = X_train.view(-1, sequence_length, input_size)
-    X_test = X_test.view(-1, sequence_length, input_size)
-    print("Reshaping complete.")
+# Load the data
+file_path = "player_data.csv"  # Path to your dataset
+X_features, X_metadata, y = load_data(file_path)
 
-    # Create data loaders
-    print("Creating data loaders...")
-    train_loader = torch.utils.data.DataLoader(
-        dataset=torch.utils.data.TensorDataset(X_train, y_train, M_train),
-        batch_size=32,
-        shuffle=True
-    )
-    test_loader = torch.utils.data.DataLoader(
-        dataset=torch.utils.data.TensorDataset(X_test, y_test, M_train),
-        batch_size=32,
-        shuffle=False
-    )
-    print("Data loaders ready.")
+# Create a DataLoader for batch processing
+train_loader = create_dataloader(X_features, X_metadata, y)
 
-    # Define the model, criterion, and optimizer
-    print("Initializing model...")
-    hidden_size = 64
-    output_size = 1
-    num_layers = 1
-    model = PlayerPerformanceRNN(input_size, hidden_size, output_size, num_layers)
-    print("Model initialized.")
+# Define device (GPU or CPU)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+# Model parameters
+sequence_input_size = 3  # Number of features per tuple (e.g., match rating, opponent, home/away)
+hidden_size = 64  # Hidden size for RNN
+num_layers = 2  # Number of LSTM layers
+metadata_size = 5  # Number of constant metadata features (id, cost, team)
+output_size = 1  # Target score (single value)
 
-    # Train the model
-    print("Training the model...")
-    num_epochs = 100
-    train_model(model, criterion, optimizer, train_loader, num_epochs)
+# Initialize the model
+model = HybridRNN(sequence_input_size, hidden_size, num_layers, metadata_size, output_size).to(device)
 
-    # Evaluate the model
-    print("Evaluating the model...")
-    evaluate_model(model, criterion, test_loader)
-    print("Script complete.")
+# Loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Train the model
+num_epochs = 1000
+train_model(model, train_loader, optimizer, criterion, num_epochs)
