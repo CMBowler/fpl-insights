@@ -3,14 +3,17 @@
 
 #include <string>
 #include <iostream>
+#include <tuple>
 
-#include "form.hpp"
+#include "score.hpp"
 
 #define BOOTSTRAP "bootstrap-static/"
 #define MATCH_HISTORY "element-summary/"
 #define MATCHWEEK_HISTORY "fixtures/"
 
-enum TEAMS {
+using namespace std;
+
+enum TEAM {
     ARS = 1,
     AVL,
     BOU,
@@ -30,22 +33,21 @@ enum TEAMS {
     SOU,
     TOT,
     WHU,
-    WOL
+    WOL,
     MAX_TEAMS
 };
-
-using namespace std;
 
 typedef struct player {
     int pid;
     int cost;
     ROLE role;
     int mins;
-    int team;
+    TEAM team;
+    vector<tuple<float, bool, float>> matchHist;
 }player;
 
 string fetchJSONFromURL(const string& url);
 
 vector<player> fetchPlayers(const string& jsonContent);
 
-#endif
+#endif // _FETCH_HPP_

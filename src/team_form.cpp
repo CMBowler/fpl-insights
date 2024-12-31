@@ -1,11 +1,7 @@
 #include <vector>
-#include "json.hpp"
 #include "fetch.hpp"
 
-// Use the JSON library
-using json = nlohmann::json;
-
-using namespace std;
+#include "team_form.hpp"
 
 
 // Function to calculate the new form of a team
@@ -59,14 +55,4 @@ void calculateFormProgression(const std::string& jsonFilename) {
     for (const auto& [team, form] : teamForms) {
         std::cout << "Team: " << team << ", Final Form: " << form << std::endl;
     }
-}
-
-int main() {
-    // Path to the JSON file
-    std::string jsonFilename = "league_results.json";
-
-    // Calculate form progression
-    calculateFormProgression(jsonFilename);
-
-    return 0;
 }

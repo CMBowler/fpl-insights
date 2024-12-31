@@ -1,7 +1,8 @@
 #include <stdexcept>
 #include <iostream>
+#include <tuple>
 
-#include "form.hpp"
+#include "player_form.hpp"
 
 static float stringToFloat(const std::string& str) {
     try {
@@ -22,19 +23,23 @@ static float stringToFloat(const std::string& str) {
 }
 
 // Function to parse JSON and calculate scores
-std::vector<float> CalculateForm(const std::string& jsonContent, ROLE role) {
+void CalculateForm(player * Player, const std::string& jsonContent) {
     json matchweek_scores = json::parse(jsonContent);
 
     // Extract match history
     std::vector<json> recentMatches = matchweek_scores["history"];
 
-    std::vector<float> all_scores;
-
     // Loop through each array in "history"
     for (const auto& match : recentMatches) {
 
+        // Add the opposition team to the vector:
+        float opposition = ((float)match["opponent_team"] / (float)MAX_TEAMS);
+        
+        // Add if the match was home to the vector
+        bool home = bool(match["was_home"]);
+
         if(match["minutes"] == 0) {
-            all_scores.push_back(0.0);
+            Player->matchHist.emplace_back(opposition, home, 0.0f);
             continue;
         }
 
@@ -53,12 +58,38 @@ std::vector<float> CalculateForm(const std::string& jsonContent, ROLE role) {
         float score = calculateEvaluationScore(
             goals, assists, xG, xA, bonus_points, 
             influence, creativity, threat, 
-            goals_conceded, xGC, role
+            goals_conceded, xGC, Player->role
         );
 
-        // Store the matchweek scores in the main vector
-        all_scores.push_back(score);
+        Player->matchHist.emplace_back(opposition, home, score);
+    }
+}
+
+int createPlayerHistory(vector<player>& playerInfo) {
+
+    for (auto& Player : playerInfo) {
+        // Build history vector for each player
+
+        // if a player has played a total of less
+        // than 90 mins, exclude them from the dataset
+        if (Player.mins < 180) {
+            continue;
+        }
+
+        // Build URL for player history
+        string playerURL = URL;
+        playerURL.append(MATCH_HISTORY);
+        playerURL.append(to_string(Player.pid));
+
+        //cout    << "Requesting match history for player " << player.pid 
+        //        << " from URL: " << playerURL << endl;
+
+        string playerHist = fetchJSONFromURL(playerURL);
+
+        CalculateForm(&Player, playerHist);
+
     }
 
-    return all_scores;
+    return EXIT_SUCCESS;
+
 }

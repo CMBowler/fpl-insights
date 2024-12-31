@@ -52,7 +52,9 @@ float calculateEvaluationScore(
     score += weights[5] * normalized_goals_conceded; // Penalize for goals conceded
     score += weights[6] * normalized_xGC;                      // Penalize for expected goals conceded
 
-    score = std::max(score, 0.0); // Ensure the score is non-negative
+    // Normalise the score
+    score = std::max(score, 0.0); 
+    score = std::min(score, 1.0); 
     
     return score;
 }

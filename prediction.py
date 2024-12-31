@@ -1,83 +1,188 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import numpy as np
 
-# Example dataset (replace with actual data)
-# Each row: [cost, form1, ..., form8, diff1, ..., diff8, next_diff], target: performance
-data = np.random.rand(1000, 18)  # 1000 samples, 17 inputs + 1 target
-X = data[:, :-1]  # Features (cost, forms, difficulties)
-y = data[:, -1]   # Target (performance)
+# Load and preprocess the data
+def load_data(file_path):
+    print("Loading data from CSV...")
+    data = pd.read_csv(file_path)
+    print(f"Data loaded successfully. Number of records: {len(data)}")
 
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Extract metadata and features
+    print("Separating metadata and features...")
+    metadata = data.iloc[:, :3].values  # First 3 columns: id, cost, team
+    features = data.iloc[:, 3:-1].values  # Triplet data (all but the last column)
+    targets = data.iloc[:, -1].values    # Final column: target score
+    print("Metadata and features separated.")
 
-# Normalize features
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+    # Extract and append opponent and home/away values from the last triplet
+    print("Appending opponent and home/away values to metadata...")
+    num_samples = len(data)
+    sequence_length = 5
+    input_size = 3
 
-# Convert to PyTorch tensors
-X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)
-X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-y_test_tensor = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1)
+    # Calculate the indices of the last triplet's opponent and home/away columns
+    opponent_index = sequence_length * input_size - 2
+    home_away_index = sequence_length * input_size - 1
 
-# Define the RNN-based neural network
-class PlayerPerformanceRNN(nn.Module):
-    def __init__(self, input_dim=2, rnn_hidden_size=32, fc_hidden_size=64, seq_length=8):
-        super(PlayerPerformanceRNN, self).__init__()
+    # Extract the last tuple's opponent and home/away values
+    last_opponent = features[:, opponent_index]
+    last_home_away = features[:, home_away_index]
+
+    # Append to metadata
+    metadata = np.hstack((metadata, last_opponent.reshape(-1, 1), last_home_away.reshape(-1, 1)))
+    print(f"Updated metadata shape: {metadata.shape}")
+
+    # Remove the last tuple's opponent and home/away from features
+    print("Removing last opponent and home/away values from features...")
+    features = np.delete(features, [opponent_index, home_away_index], axis=1)
+
+    # Normalize features (triplet data only)
+    print("Normalizing triplet features...")
+    scaler = StandardScaler()
+    features = scaler.fit_transform(features)
+    print("Normalization complete.")
+
+    # Reshape triplet features for RNN
+    print("Reshaping features for RNN...")
+    if features.shape[1] % (sequence_length * input_size - 2) != 0:
+        print("Error: The number of triplet values is not divisible by the adjusted sequence length.")
+        return None
+
+    reshaped_features = features.reshape(-1, sequence_length, input_size - 2)
+    reshaped_targets = targets[sequence_length - 1::sequence_length]  # Use valid y values
+    print(f"Features reshaped to {reshaped_features.shape}. Targets reshaped to {len(reshaped_targets)}.")
+
+    # Convert to tensors
+    print("Converting to tensors...")
+    X_train, X_test, y_train, y_test, M_train, M_test = train_test_split(
+        reshaped_features, reshaped_targets, metadata, test_size=0.2, random_state=42
+    )
+
+    return (
+        torch.tensor(X_train, dtype=torch.float32),
+        torch.tensor(X_test, dtype=torch.float32),
+        torch.tensor(y_train, dtype=torch.float32),
+        torch.tensor(y_test, dtype=torch.float32),
+        torch.tensor(M_train, dtype=torch.float32),
+        torch.tensor(M_test, dtype=torch.float32)
+    )
+
+# Define the RNN Model
+class PlayerPerformancePredictor(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, metadata_size, output_size=1):
+        super(PlayerPerformancePredictor, self).__init__()
+        # RNN for sequential data
+        self.rnn = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         
-        # RNN to process sequential data (form and difficulty ratings)
-        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=rnn_hidden_size, batch_first=True)
-        
-        # Fully connected layers for combining RNN output and non-sequential features
-        self.fc = nn.Sequential(
-            nn.Linear(rnn_hidden_size + 2, fc_hidden_size),  # +2 for cost and next_diff
+        # Dense network for metadata
+        self.metadata_fc = nn.Sequential(
+            nn.Linear(metadata_size, 32),
             nn.ReLU(),
-            nn.Linear(fc_hidden_size, 1)  # Output: performance
+            nn.Linear(32, 16),
+            nn.ReLU()
+        )
+        
+        # Final fully connected layer
+        self.fc = nn.Sequential(
+            nn.Linear(hidden_size + 16, 32),
+            nn.ReLU(),
+            nn.Linear(32, output_size)
         )
 
-    def forward(self, x):
-        # Split inputs
-        cost = x[:, 0:1]  # Cost: shape (batch_size, 1)
-        next_diff = x[:, -1:]  # Next team difficulty: shape (batch_size, 1)
-        seq_features = x[:, 1:-1].view(-1, 8, 2)  # Sequential data: shape (batch_size, seq_length, 2)
+    def forward(self, sequence_data, metadata):
+        # Process sequence data through RNN
+        rnn_out, _ = self.rnn(sequence_data)
+        rnn_out = rnn_out[:, -1, :]  # Take the last hidden state
         
-        # Pass sequential data through RNN
-        _, (hidden_state, _) = self.rnn(seq_features)  # hidden_state: shape (1, batch_size, rnn_hidden_size)
-        hidden_state = hidden_state.squeeze(0)  # Remove extra dimension: shape (batch_size, rnn_hidden_size)
+        # Process metadata through dense network
+        metadata_out = self.metadata_fc(metadata)
         
-        # Concatenate RNN output with cost and next_diff
-        combined_features = torch.cat([hidden_state, cost, next_diff], dim=1)
+        # Concatenate RNN and metadata outputs
+        combined = torch.cat((rnn_out, metadata_out), dim=1)
         
-        # Pass through fully connected layers
-        output = self.fc(combined_features)
+        # Final prediction
+        output = self.fc(combined)
         return output
 
-# Initialize the model, loss function, and optimizer
-model = PlayerPerformanceRNN()
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+# Training function
+def train_model(model, train_loader, optimizer, criterion, num_epochs):
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for sequence_data, metadata, targets in train_loader:
 
-# Training loop
-num_epochs = 50
-for epoch in range(num_epochs):
-    model.train()
-    optimizer.zero_grad()
-    predictions = model(X_train_tensor)
-    loss = criterion(predictions, y_train_tensor)
-    loss.backward()
-    optimizer.step()
+            optimizer.zero_grad()
+            outputs = model(sequence_data, metadata)
+            loss = criterion(outputs.squeeze(), targets)
+            loss.backward()
+            optimizer.step()
 
-    if (epoch + 1) % 10 == 0:
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+            running_loss += loss.item()
+        
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}")
 
-# Evaluation
-model.eval()
-with torch.no_grad():
-    predictions = model(X_test_tensor)
-    test_loss = criterion(predictions, y_test_tensor)
-    print(f"Test Loss: {test_loss.item():.4f}")
+# Evaluation function
+def evaluate_model(model, criterion, test_loader):
+    print("Evaluating model on test data...")
+    model.eval()
+    total_loss = 0
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs.squeeze(), targets)
+            total_loss += loss.item()
+    print(f"Test Loss: {total_loss / len(test_loader):.4f}")
+
+# Main script
+if __name__ == "__main__":
+    print("Starting script...")
+    # Load the data
+    file_path = "player_data.csv"
+    X_train, X_test, y_train, y_test, M_train, M_test = load_data(file_path)
+    
+    # Reshape data for RNN (batch_size, sequence_length, input_size)
+    print("Reshaping data for RNN...")
+    sequence_length = 5
+    input_size = 3  # Match rating, opponent team, home/away
+    X_train = X_train.view(-1, sequence_length, input_size)
+    X_test = X_test.view(-1, sequence_length, input_size)
+    print("Reshaping complete.")
+
+    # Create data loaders
+    print("Creating data loaders...")
+    train_loader = torch.utils.data.DataLoader(
+        dataset=torch.utils.data.TensorDataset(X_train, y_train, M_train),
+        batch_size=32,
+        shuffle=True
+    )
+    test_loader = torch.utils.data.DataLoader(
+        dataset=torch.utils.data.TensorDataset(X_test, y_test, M_train),
+        batch_size=32,
+        shuffle=False
+    )
+    print("Data loaders ready.")
+
+    # Define the model, criterion, and optimizer
+    print("Initializing model...")
+    hidden_size = 64
+    output_size = 1
+    num_layers = 1
+    model = PlayerPerformanceRNN(input_size, hidden_size, output_size, num_layers)
+    print("Model initialized.")
+
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Train the model
+    print("Training the model...")
+    num_epochs = 100
+    train_model(model, criterion, optimizer, train_loader, num_epochs)
+
+    # Evaluate the model
+    print("Evaluating the model...")
+    evaluate_model(model, criterion, test_loader)
+    print("Script complete.")

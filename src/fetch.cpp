@@ -1,9 +1,10 @@
-#include "fetch.hpp"
-
 #include <sstream>
 #include <iostream>
 #include <curl/curl.h>
+
 #include "json.hpp"
+#include "fetch.hpp"
+#include "player_form.hpp"
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
     size_t totalSize = size * nmemb;
