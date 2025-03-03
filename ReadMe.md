@@ -58,7 +58,7 @@ Ensure you have the following installed:
 - Requests
 - NumPy
 - CMake
-- gcc
+- gcc / C++ compiler of choice
 
 ### Steps to Run
 1. **Fetch Data**: Run the scraping script to download the latest FPL data.
@@ -68,15 +68,15 @@ Ensure you have the following installed:
 
 ## Compile and Run Data Collector and Refiner
 
-### Build
-`cmake -S . -B build`
-`cmake --build build`
+Update - to Run the C++ Data Processor and the python ML script in 
+one go use the 'run' script:
 
-### Run
+For Linux : `./run.sh`
 
-`cmake --build build --target get_stats`
+For Windows : `run.bat`
 
 ### Future Improvements
 - Expand dataset.
+- Implement multithreaded data processing
 - Introduce additional features such as predicting a team of the week.
 - Optimize the model architecture.

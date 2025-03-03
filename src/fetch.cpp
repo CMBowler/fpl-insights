@@ -53,9 +53,27 @@ vector<player> fetchPlayers(const string& jsonContent) {
         newPlayer.mins = info["minutes"];
         newPlayer.role = info["element_type"];
         newPlayer.team = info["team"];
+        newPlayer.name = info["web_name"];
 
         output.push_back(newPlayer);
     }
 
     return output;
+}
+
+// Function to fetch the details of the next fixture for a given player
+void fetchNextFixture(const string& jsonContent, const player Player, float * opponent, bool * home) {
+    // Parse the JSON content to get the matchweek fixtures
+    json matchweek_fixtures = json::parse(jsonContent);
+
+    // Get the first fixture from the matchweek fixtures
+    json next_fixture = matchweek_fixtures["fixtures"][0];
+
+    // Determine the opponent and whether it is a home or away game based on the player's team and the next fixture's details
+    *opponent = (((int)(Player.team) == next_fixture["team_h"]) ? 
+        (float)next_fixture["team_a"] : (float)next_fixture["team_h"]
+    );
+    
+    // Set whether it is a home or away game based on the player's team and the next fixture's details
+    *home = ((int)(Player.team) == next_fixture["team_h"]) ? true : false;
 }

@@ -43,11 +43,14 @@ typedef struct player {
     ROLE role;
     int mins;
     TEAM team;
+    string name;
     vector<tuple<float, bool, float>> matchHist;
 }player;
 
 string fetchJSONFromURL(const string& url);
 
 vector<player> fetchPlayers(const string& jsonContent);
+
+void fetchNextFixture(const string& jsonContent, const player Player, float * opponent, bool * home);
 
 #endif // _FETCH_HPP_
