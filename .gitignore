@@ -5,3 +5,5 @@ notes.*
 .vscode/*
 
 csv/*
+
+fpl-predict

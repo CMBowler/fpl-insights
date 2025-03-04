@@ -82,3 +82,4 @@ For Windows : `run.bat`
 - Add Model Training Parameters Load File so 
   data-processing/training is only optional.
 - Standardise Error Handling
+- Make the Code Structure more Object-Oriented
