@@ -6,7 +6,7 @@
 
 #include "fetch.hpp"
 
-#define CSV_DIR "../../csv/"
+#define CSV_DIR "csv/"
 
 #define CSV_OUT "player_data.csv"
 #define CSV_NEXT "player_fixture.csv"

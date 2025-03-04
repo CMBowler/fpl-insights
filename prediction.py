@@ -7,11 +7,11 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-player_data = "../../csv/player_data.csv"         # Path to your training dataset
-player_fixtures = "../../csv/player_fixture.csv"  # Path to your inference dataset
-prediction_csv = "../../csv/predictions.csv"
+player_data = "csv/player_data.csv"         # Path to your training dataset
+player_fixtures = "csv/player_fixture.csv"  # Path to your inference dataset
+prediction_csv = "csv/predictions.csv"
 
-model_weights = "../../model/model_weights.pth"
+model_weights = "model/model_weights.pth"
 
 EPOCHS = 750
 

@@ -79,3 +79,6 @@ For Windows : `run.bat`
 - Expand dataset.
 - Implement multithreaded data processing
 - Optimize the model architecture.
+- Add Model Training Parameters Load File so 
+  data-processing/training is only optional.
+- Standardise Error Handling

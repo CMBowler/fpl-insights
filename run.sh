@@ -12,6 +12,8 @@ make
 
 cd ..
 
+mkdir -p csv
+
 # Run the program with the url argument
-./build/fpl-predict "fantasy.premierleague.com/api/"
+./fpl-predict "fantasy.premierleague.com/api/"
 

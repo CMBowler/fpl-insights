@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#define PYTHON_SCRIPT "../../prediction.py"
+#define PYTHON_SCRIPT "prediction.py"
 
 int runPythonTraining(void);
 
