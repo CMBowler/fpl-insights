@@ -25,29 +25,29 @@ enum ROLE {
 #define GK_WEIGHT_XGC       -0.2
 
 // DEFENDER
-#define DEF_WEIGHT_GOALS     0.4
+#define DEF_WEIGHT_GOALS     0.6
 #define DEF_WEIGHT_ASSISTS   0.3
-#define DEF_WEIGHT_XGI       0.1
+#define DEF_WEIGHT_XGI       0.0
 #define DEF_WEIGHT_BP        0.4
-#define DEF_WEIGHT_ICT       0.1
-#define DEF_WEIGHT_GC        -0.2
+#define DEF_WEIGHT_ICT       0.0
+#define DEF_WEIGHT_GC        -0.1
 #define DEF_WEIGHT_XGC       -0.05
 
 // MIDFIELDER
 #define MID_WEIGHT_GOALS     0.5
 #define MID_WEIGHT_ASSISTS   0.3
-#define MID_WEIGHT_XGI       0.1
-#define MID_WEIGHT_BP        0.2
-#define MID_WEIGHT_ICT       0.15
+#define MID_WEIGHT_XGI       0.0
+#define MID_WEIGHT_BP        0.3
+#define MID_WEIGHT_ICT       0.0
 #define MID_WEIGHT_GC        -0.05
 #define MID_WEIGHT_XGC       0.0
 
 // FORWARD
 #define FWD_WEIGHT_GOALS     0.4
 #define FWD_WEIGHT_ASSISTS   0.3
-#define FWD_WEIGHT_XGI       0.1
-#define FWD_WEIGHT_BP        0.2
-#define FWD_WEIGHT_ICT       0.2
+#define FWD_WEIGHT_XGI       0.0
+#define FWD_WEIGHT_BP        0.3
+#define FWD_WEIGHT_ICT       0.0
 #define FWD_WEIGHT_GC        0.0
 #define FWD_WEIGHT_XGC       0.0
 

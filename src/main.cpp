@@ -1,12 +1,12 @@
 #include "player_form.hpp"
 #include "csv.hpp"
+#include "team_select.hpp"
 #include "PyTrain.hpp"
 
 #define TOP_N 20
 
 int main(int argc, char* argv[]) {
 
-    
     string url;
 
     // Get URL from args:
@@ -59,6 +59,13 @@ int main(int argc, char* argv[]) {
 
     printTopNPlayers(TOP_N, CSV_DIR_NET, playerInfo);
 
+    // Add prediced scroes to structs
+
+    updatePlayerScoresFromCSV(playerInfo, CSV_DIR_NET);
+
+    // Create Top Team
+
+    selectTeam(playerInfo, BUDGET);
 
     return EXIT_SUCCESS;
 }

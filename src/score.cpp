@@ -15,16 +15,16 @@ float calculateEvaluationScore(
     float goals_conceded, float xGC, ROLE role
 ) {
     // Define maximum values for normalization
-    const double max_goals = 2.0;
-    const double max_assists = 2.0;
-    const double max_xG = 1.0;
-    const double max_xA = 1.0;
-    const double max_bonus_points = 50.0;
+    const double max_goals = 3.0;
+    const double max_assists = 3.0;
+    const double max_xG = 2.0;
+    const double max_xA = 2.0;
+    const double max_bonus_points = 75.0;
     const double max_influence = 100.0;
     const double max_creativity = 100.0;
     const double max_threat = 100.0;
-    const double max_goals_conceded = 5.0; // Assume 5 goals conceded as the max significant value
-    const double max_xGC = 5.0;           // Assume 5 xGC as the max significant value
+    const double max_goals_conceded = 4.0; // Assume 5 goals conceded as the max significant value
+    const double max_xGC = 4.0;           // Assume 5 xGC as the max significant value
 
     // Normalize each metric
     double normalized_goals = normalize(goals, max_goals);

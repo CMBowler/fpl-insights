@@ -44,6 +44,7 @@ typedef struct player {
     int mins;
     TEAM team;
     string name;
+    float predictedScore;
     vector<tuple<float, bool, float>> matchHist;
 }player;
 

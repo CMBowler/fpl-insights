@@ -114,7 +114,7 @@ void generatePredictionList(const vector<player> players, const string& outputFi
 
         fetchNextFixture(hist_json, player, &opponent, &home);
 
-        outFile << "," << (opponent/(float)MAX_TEAMS) << "," << home << endl;
+        outFile << "," << (opponent/((float)MAX_TEAMS-1.0)) << "," << home << endl;
 
     }
 

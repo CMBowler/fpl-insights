@@ -33,7 +33,7 @@ void CalculateForm(player * Player, const std::string& jsonContent) {
     for (const auto& match : recentMatches) {
 
         // Add the opposition team to the vector:
-        float opposition = ((float)match["opponent_team"] / (float)MAX_TEAMS);
+        float opposition = ((float)match["opponent_team"] / ((float)MAX_TEAMS-1.0));
         
         // Add if the match was home to the vector
         bool home = bool(match["was_home"]);

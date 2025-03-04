@@ -78,5 +78,4 @@ For Windows : `run.bat`
 ### Future Improvements
 - Expand dataset.
 - Implement multithreaded data processing
-- Introduce additional features such as predicting a team of the week.
 - Optimize the model architecture.

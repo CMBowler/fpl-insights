@@ -13,6 +13,8 @@ prediction_csv = "../../csv/predictions.csv"
 
 model_weights = "../../model/model_weights.pth"
 
+EPOCHS = 750
+
 class HybridRNN(nn.Module):
     def __init__(self, sequence_input_size, hidden_size, num_layers, metadata_size, output_size=1):
         super(HybridRNN, self).__init__()
@@ -225,8 +227,7 @@ criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Train the model
-num_epochs = 500
-train_model(model, train_loader, optimizer, criterion, num_epochs)
+train_model(model, train_loader, optimizer, criterion, EPOCHS)
 
 # Load model weights
 #model.load_state_dict(torch.load(model_weights))
